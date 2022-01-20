@@ -1,0 +1,69 @@
+---
+- name: Start a containerized application in Docker Compose
+  hosts:
+    - localhost
+  gather_facts: true
+  # necessary to execute docker commands
+  become: true
+
+  vars:
+    docker_compose_dest: /opt/src_docker
+    external_volume_dir: /data/volume_2
+
+  tasks:
+    - name: Install docker
+      apt:
+        name: docker.io
+
+    - name: Install docker-compose (1/2)
+      get_url:
+        url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: 'u+x,g+x'
+
+    - name: Install docker-compose (2/2)
+      pip:
+        name: docker-compose
+        executable: pip3
+
+    - name: Check if there is an external volume attached
+      stat:
+        path: "{{ external_volume_dir }}"
+      register: is_external_volume
+
+    - name: Overwrite daemon.json (if provided)
+      when: (daemon_json_url != "empty") and (is_external_volume.stat.exists)
+      block:
+        # The default value of `daemon_json_url` should be "empty"
+        - name: Create Docker data-root directory
+          file:
+            path: ""{{ external_volume_dir }}"/docker"
+            state: directory
+            mode: 755
+        - name: Download daemon.json
+          get_url:
+            url: "{{ daemon_json_url }}"
+            dest: "/etc/docker/daemon.json"
+        - name: Check that daemon.json exists
+          stat:
+            path: "/etc/docker/daemon.json"
+          register: stat_result_daemon
+        - name: Restart Docker daemon
+          when: stat_result_daemon.stat.exists
+          ansible.builtin.systemd:
+            state: restarted
+            daemon_reload: yes
+            name: docker
+
+    - name: Run docker-compose if a repository is provided
+      when: docker_compose_repo != "empty"
+      block:
+        - name: Checkout repository of docker-compose resources
+          ansible.builtin.git:
+            repo: "{{ docker_compose_repo }}"
+            dest: "{{ docker_compose_dest }}"
+            version: "{{ docker_compose_repo_branch }}"
+        # TODO: add check for existence of docker-compose.[yml|yaml]?
+        - name: Create and start services
+          community.docker.docker_compose:
+            project_src: "{{ docker_compose_dest }}/{{ docker_compose_directory }}"
