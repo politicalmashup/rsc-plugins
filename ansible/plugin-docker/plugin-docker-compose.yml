@@ -1,5 +1,5 @@
 ---
-- name: Start a containerized application in Docker Compose
+- name: Start a containerized application in Docker Compose  # FIXME: enable compose up
   hosts:
     - localhost
   gather_facts: true
@@ -55,15 +55,15 @@
             daemon_reload: yes
             name: docker
 
-    - name: Run docker-compose if a repository is provided
-      when: docker_compose_repo != "empty"
-      block:
-        - name: Checkout repository of docker-compose resources
-          ansible.builtin.git:
-            repo: "{{ docker_compose_repo }}"
-            dest: "{{ docker_compose_dest }}"
-            version: "{{ docker_compose_repo_branch }}"
-        # TODO: add check for existence of docker-compose.[yml|yaml]?
-        - name: Create and start services
-          community.docker.docker_compose:
-            project_src: "{{ docker_compose_dest }}/{{ docker_compose_directory }}"
+#    - name: Run docker-compose if a repository is provided
+#      when: docker_compose_repo != "empty"
+#      block:
+#        - name: Checkout repository of docker-compose resources
+#          ansible.builtin.git:
+#            repo: "{{ docker_compose_repo }}"
+#            dest: "{{ docker_compose_dest }}"
+#            version: "{{ docker_compose_repo_branch }}"
+#        # TODO: add check for existence of docker-compose.[yml|yaml]?
+#        - name: Create and start services
+#          community.docker.docker_compose:
+#            project_src: "{{ docker_compose_dest }}/{{ docker_compose_directory }}"
