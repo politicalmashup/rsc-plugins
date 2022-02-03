@@ -39,7 +39,7 @@
           file:
             path: "{{ external_volume_dir }}/docker"
             state: directory
-            mode: 755
+            mode: '755'
         - name: Download daemon.json
           get_url:
             url: "{{ daemon_json_url }}"
